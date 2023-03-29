@@ -18,6 +18,12 @@ subprojects {
         // Spring
         implementation 'org.springframework.boot:spring-boot-starter-web:2.7.5'
         implementation 'org.springframework.boot:spring-boot-configuration-processor:2.7.5'
+        // Tracing
+        implementation 'io.opentelemetry:opentelemetry-api:1.24.0'
+        implementation 'io.opentelemetry:opentelemetry-sdk:1.24.0'
+        implementation 'io.opentelemetry:opentelemetry-exporter-jaeger:1.24.0'
+        implementation 'io.opentelemetry:opentelemetry-exporter-jaeger-thrift:1.24.0'
+        implementation 'io.opentelemetry:opentelemetry-semconv:1.24.0-alpha'
         // Utils
         implementation 'com.google.guava:guava:31.1-jre'
         implementation 'org.apache.commons:commons-lang3:3.12.0'
