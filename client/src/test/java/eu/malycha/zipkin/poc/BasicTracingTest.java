@@ -1,64 +1,140 @@
 package eu.malycha.zipkin.poc;
 
-import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
-import io.opentelemetry.context.Scope;
-import io.opentelemetry.context.propagation.ContextPropagators;
-import io.opentelemetry.exporter.jaeger.JaegerGrpcSpanExporter;
-import io.opentelemetry.exporter.jaeger.thrift.JaegerThriftSpanExporter;
-import io.opentelemetry.exporter.jaeger.thrift.JaegerThriftSpanExporterBuilder;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.resources.Resource;
-import io.opentelemetry.sdk.trace.SdkTracerProvider;
-import io.opentelemetry.sdk.trace.SpanProcessor;
-import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
-import io.opentelemetry.sdk.trace.export.SpanExporter;
-import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
-import org.junit.jupiter.api.BeforeAll;
+import io.opentelemetry.api.trace.StatusCode;
 import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
 
 class BasicTracingTest {
 
-    static OpenTelemetry openTelemetry;
-
-    @BeforeAll
-    static void beforeAll() {
-        Resource inner = Resource.create(
-            Attributes.of(ResourceAttributes.SERVICE_NAME, "fix-api-server")
-        );
-        Resource resource = Resource.getDefault().merge(inner);
-
-        SpanExporter spanExporter = JaegerThriftSpanExporter.builder()
-            .build();
-
-        SpanProcessor spanProcessor = SimpleSpanProcessor.create(spanExporter);
-
-        SdkTracerProvider sdkTracerProvider = SdkTracerProvider.builder()
-            .addSpanProcessor(spanProcessor)
-            .setResource(resource)
-            .build();
-
-        ContextPropagators propagators = ContextPropagators.create(
-            W3CTraceContextPropagator.getInstance()
-        );
-
-        openTelemetry = OpenTelemetrySdk.builder()
-            .setTracerProvider(sdkTracerProvider)
-            .setPropagators(propagators)
-            .buildAndRegisterGlobal();
-    }
+    static final Duration DEFAULT = Duration.ofSeconds(1);
 
     @Test
     void basicTest() throws Exception {
-        Tracer tracer = openTelemetry.getTracer("fix-api-server-core", "1.0.0");
-        Span span = tracer.spanBuilder("login").startSpan();
-        try (Scope ss = span.makeCurrent()) {
-            Thread.sleep(2000);
-        } finally {
-            span.end();
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("fix-api-server")) {
+            otc.runInSpan("quickfixj", "login", () -> {
+                delay(DEFAULT);
+            });
+        }
+    }
+
+    @Test
+    void orderTest() throws Exception {
+        StringMapContext context = orderFixApiServer();
+        orderGateway(context);
+        orderCollider(context);
+        orderWrapper(context);
+    }
+
+    @Test
+    void reportTest() throws Exception {
+        StringMapContext context = reportWrapper();
+        context = reportCollider(context);
+        context = reportGateway(context);
+        reportFixApiServer(context);
+    }
+
+    StringMapContext orderFixApiServer() throws Exception {
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("fix-api-server")) {
+            return otc.runInSpan("request", "newOrder", () -> {
+                otc.runInSpan("core", "newOrder", () -> {
+                    delay(100);
+                    otc.runInSpan("hazelcast", "storeOrderId", () -> {
+                        delay(200);
+                    });
+                    delay(150);
+                });
+            });
+        }
+    }
+
+    StringMapContext orderGateway(StringMapContext context) throws Exception {
+        delay(85);
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-gateway")) {
+            return otc.runInRootSpan("core", "handleNewOrder", context, () -> {
+                delay(100);
+                otc.runInSpan("hazelcast", "fetchOrderState", () -> {
+                    Span.current().addEvent("Send message");
+                    delay(150);
+                    Span.current().addEvent("Receive answer");
+                    Span.current().setStatus(StatusCode.OK);
+                });
+                delay(100);
+                otc.runInSpan("hazelcast", "storeOrderState", () -> {
+                    delay(120);
+                    Span.current().setStatus(StatusCode.OK);
+                });
+                otc.runInSpan("rabbit", "emitMessage", () -> {
+                    delay(25);
+                    Span.current().setStatus(StatusCode.OK);
+                });
+            });
+        }
+    }
+
+    StringMapContext orderCollider(StringMapContext context) throws Exception {
+        delay(44);
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-collider")) {
+            return otc.runInRootSpan("core", "handleNewOrder", context, () -> {
+                delay(DEFAULT);
+            });
+        }
+    }
+
+    void orderWrapper(StringMapContext context) throws Exception {
+        delay(87);
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("connector-wrapper")) {
+            otc.runInRootSpan("core", "handleNewOrder", context, () -> {
+                delay(DEFAULT);
+            });
+        }
+    }
+
+    StringMapContext reportWrapper() throws Exception {
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("connector-wrapper")) {
+            return otc.runInSpan("report", "executionReport", () -> {
+                otc.runInSpan("core", "connectorHandler", () -> {
+                    delay(DEFAULT);
+                });
+            });
+        }
+    }
+
+    StringMapContext reportCollider(StringMapContext context) throws Exception {
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-collider")) {
+            return otc.runInRootSpan("core", "reportHandler", context, () -> {
+                delay(DEFAULT);
+            });
+        }
+    }
+
+    StringMapContext reportGateway(StringMapContext context) throws Exception {
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-gateway")) {
+            return otc.runInRootSpan("core", "reportHandler", context, () -> {
+                delay(DEFAULT);
+            });
+        }
+    }
+
+    void reportFixApiServer(StringMapContext context) throws Exception {
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("fix-api-server")) {
+            otc.runInRootSpan("core", "reportHandler", context, () -> {
+                delay(DEFAULT);
+            });
+        }
+    }
+
+
+    public void delay(Duration duration) {
+        delay(duration.toMillis());
+    }
+
+    public void delay(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
         }
     }
 }
