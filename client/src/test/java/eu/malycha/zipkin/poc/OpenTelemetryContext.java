@@ -1,5 +1,6 @@
 package eu.malycha.zipkin.poc;
 
+import io.opentelemetry.api.baggage.propagation.W3CBaggagePropagator;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
@@ -15,6 +16,7 @@ import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.SdkTracerProviderBuilder;
 import io.opentelemetry.sdk.trace.SpanProcessor;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
@@ -78,7 +80,10 @@ public class OpenTelemetryContext implements Closeable {
         SpanExporter spanExporter = JaegerThriftSpanExporter.builder()
             .build();
 
-        SpanProcessor spanProcessor = SimpleSpanProcessor.create(spanExporter);
+        SpanProcessor spanProcessor = SpanProcessor.composite(
+            BatchSpanProcessor.builder(spanExporter).build(),
+            BaggageSpanProcessor.create()
+        );
 
         SdkTracerProviderBuilder sdkTracerProviderBuilder = SdkTracerProvider.builder()
             .addSpanProcessor(spanProcessor)
@@ -88,7 +93,10 @@ public class OpenTelemetryContext implements Closeable {
 
     private static OpenTelemetrySdk createOpenTelemetry(SdkTracerProvider sdkTracerProvider) {
         ContextPropagators propagators = ContextPropagators.create(
-            W3CTraceContextPropagator.getInstance()
+            TextMapPropagator.composite(
+                W3CTraceContextPropagator.getInstance(),
+                W3CBaggagePropagator.getInstance()
+            )
         );
         OpenTelemetrySdkBuilder openTelemetryBuilder = OpenTelemetrySdk.builder()
             .setTracerProvider(sdkTracerProvider)
