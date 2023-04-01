@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc;
+package eu.malycha.zipkin.poc.otel;
 
 import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.trace.Span;
@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.BitSet;
 import java.util.UUID;
 
 class BasicTracingTest {

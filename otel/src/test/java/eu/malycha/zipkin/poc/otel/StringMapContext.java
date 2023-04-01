@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc;
+package eu.malycha.zipkin.poc.otel;
 
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;

@@ -1,3 +1,4 @@
 rootProject.name = 'zipkin-poc'
 
-include 'client'
+include 'otel'
+include 'micrometer'

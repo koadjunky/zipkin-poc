@@ -1,0 +1,19 @@
+plugins {
+    id 'org.springframework.boot' version '3.0.4'
+}
+apply plugin: 'io.spring.dependency-management'
+
+group 'eu.malycha'
+version '0.0.1-SNAPSHOT'
+
+dependencies {
+    // Tracing
+    implementation 'org.springframework.boot:spring-boot-actuator'
+    implementation 'org.springframework.boot:spring-boot-actuator-autoconfigure'
+    implementation 'io.micrometer:micrometer-tracing'
+    //implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+
+    testImplementation 'io.micrometer:micrometer-observation-test'
+    testImplementation 'io.micrometer:micrometer-tracing-test'
+}

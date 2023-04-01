@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc;
+package eu.malycha.zipkin.poc.otel;
 
 import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.context.Context;

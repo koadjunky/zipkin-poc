@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc;
+package eu.malycha.zipkin.poc.otel;
 
 import io.opentelemetry.api.baggage.propagation.W3CBaggagePropagator;
 import io.opentelemetry.api.common.Attributes;
@@ -17,13 +17,11 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.SdkTracerProviderBuilder;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
-import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.function.Consumer;
 
 public class OpenTelemetryContext implements Closeable {
 
