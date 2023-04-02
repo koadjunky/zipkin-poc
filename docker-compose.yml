@@ -5,11 +5,24 @@ services:
     ports:
       - "16686:16686"
       - "14268:14268"
+      - "14250:14250"
     environment:
       - COLLECTOR_OTLP_ENABLED=true
       - LOG_LEVEL=debug
     networks:
       - jaeger-example
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:Z
+    ports:
+      - "13133:13133"
+      - "4317:4317"
+    networks:
+      - jaeger-example
+    depends_on:
+      - jaeger
   hotrod:
     image: jaegertracing/example-hotrod:latest
     # To run the latest trunk build, find the tag at Docker Hub and use the line below
