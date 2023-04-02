@@ -24,9 +24,28 @@ hs_err_pid*
 
 # Idea
 /.idea/
+*.ipr
+*.iml
+*.iws
 
 # Ignore Gradle project-specific cache directory
-.gradle
+.gradle/
+build/
 
-# Ignore Gradle build output directory
-build
+# Visual Studio Code
+.vscode
+.factorypath
+
+# OSX
+.DS_Store
+
+# Vim
+*.swp
+*.swo
+
+# patch
+*.orig
+*.rej
+
+# Local environment
+.env

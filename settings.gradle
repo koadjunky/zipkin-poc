@@ -1,4 +1,12 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        mavenLocal()
+    }
+}
 rootProject.name = 'zipkin-poc'
 
 include 'otel'
 include 'micrometer'
+include 'quarkus'

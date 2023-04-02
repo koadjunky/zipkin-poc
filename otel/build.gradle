@@ -1,16 +1,44 @@
 plugins {
+    id 'java'
     id 'org.springframework.boot' version '2.7.5'
 }
 apply plugin: 'io.spring.dependency-management'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
 
 group 'eu.malycha'
 version '0.0.1-SNAPSHOT'
 
 dependencies {
+    // Spring
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-configuration-processor'
     // Tracing
     implementation 'io.opentelemetry:opentelemetry-api:1.24.0'
     implementation 'io.opentelemetry:opentelemetry-sdk:1.24.0'
     implementation 'io.opentelemetry:opentelemetry-exporter-jaeger:1.24.0'
     implementation 'io.opentelemetry:opentelemetry-exporter-jaeger-thrift:1.24.0'
     implementation 'io.opentelemetry:opentelemetry-semconv:1.24.0-alpha'
+    // Utils
+    implementation 'com.google.guava:guava:31.1-jre'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.apache.commons:commons-collections4:4.4'
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
+    testImplementation 'org.mockito:mockito-core:4.8.0'
+    testImplementation 'org.awaitility:awaitility:4.2.0'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+test {
+    useJUnitPlatform()
 }
