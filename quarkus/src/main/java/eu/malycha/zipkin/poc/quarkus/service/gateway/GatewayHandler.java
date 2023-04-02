@@ -1,7 +1,12 @@
 package eu.malycha.zipkin.poc.quarkus.service.gateway;
 
+import eu.malycha.zipkin.poc.quarkus.infra.OpenTelemetryContext;
 import eu.malycha.zipkin.poc.quarkus.model.Order;
 import eu.malycha.zipkin.poc.quarkus.service.collider.ColliderHandler;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -28,16 +33,32 @@ public class GatewayHandler {
     GatewayStorage gatewayStorage;
 
     @Incoming("client")
-    public CompletionStage<Void> handle(Message<JsonObject> message) {
+    public CompletionStage<Void> handle(Message<JsonObject> message) throws Exception {
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-gateway")) {
+            Tracer tracer = otc.getOpenTelemetry().getTracer("core", OpenTelemetryContext.VERSION);
+            Span span = tracer.spanBuilder("handleNewOrder").startSpan();
+            try (Scope ss = span.makeCurrent()) {
+                return handleInner(message, tracer);
+            } finally {
+                span.end();
+            }
+        }
+    }
+
+    public CompletionStage<Void> handleInner(Message<JsonObject> message, Tracer tracer) {
         Order order = message.getPayload().mapTo(Order.class);
         LOGGER.info("GatewayHandler.handle({})", order.orderId);
         delay(100);
-        gatewayStorage.fetchOrderState();
+        gatewayStorage.fetchOrderState(tracer);
         delay(100);
-        gatewayStorage.storeOrderState();
+        gatewayStorage.storeOrderState(tracer);
         emit(order);
-        // Set status ERROR
-        // Set exception
+        Span.current().setStatus(StatusCode.ERROR);
+        try {
+            throw new Exception("Example exception");
+        } catch (Exception ex) {
+            Span.current().recordException(ex);
+        }
         return message.ack();
     }
 

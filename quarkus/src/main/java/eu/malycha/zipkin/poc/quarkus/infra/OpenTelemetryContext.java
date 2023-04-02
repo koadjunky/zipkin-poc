@@ -1,5 +1,6 @@
 package eu.malycha.zipkin.poc.quarkus.infra;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.baggage.propagation.W3CBaggagePropagator;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
@@ -25,7 +26,7 @@ import java.io.IOException;
 
 public class OpenTelemetryContext implements Closeable {
 
-    static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.0.0";
 
     private final SdkTracerProvider tracerProvider;
     private final OpenTelemetrySdk openTelemetry;
@@ -45,6 +46,10 @@ public class OpenTelemetryContext implements Closeable {
         try (Closeable tp = tracerProvider) {
             // Empty
         }
+    }
+
+    public OpenTelemetry getOpenTelemetry() {
+        return openTelemetry;
     }
 
     public StringMapContext runInSpan(String scopeName, String spanName, Runnable runnable) {

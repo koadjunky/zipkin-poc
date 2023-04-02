@@ -1,7 +1,11 @@
 package eu.malycha.zipkin.poc.quarkus.service.collider;
 
+import eu.malycha.zipkin.poc.quarkus.infra.OpenTelemetryContext;
 import eu.malycha.zipkin.poc.quarkus.model.Order;
 import eu.malycha.zipkin.poc.quarkus.service.wrapper.WrapperHandler;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -28,15 +32,27 @@ public class ColliderHandler {
     ColliderStorage colliderStorage;
 
     @Incoming("oems")
-    public CompletionStage<Void> handle(Message<JsonObject> message) {
+    public CompletionStage<Void> handle(Message<JsonObject> message) throws Exception {
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-collider")) {
+            Tracer tracer = otc.getOpenTelemetry().getTracer("core", OpenTelemetryContext.VERSION);
+            Span span = tracer.spanBuilder("handleNewOrder").startSpan();
+            try (Scope ss = span.makeCurrent()) {
+                return handleInner(message, tracer);
+            } finally {
+                span.end();
+            }
+        }
+    }
+
+    public CompletionStage<Void> handleInner(Message<JsonObject> message, Tracer tracer) {
         Order order = message.getPayload().mapTo(Order.class);
         LOGGER.info("ColliderHandler.handle({})", order.orderId);
         delay(100);
-        colliderStorage.fetchSecurity();
+        colliderStorage.fetchSecurity(tracer);
         delay(10);
-        colliderStorage.fetchOrderState();
+        colliderStorage.fetchOrderState(tracer);
         delay(100);
-        colliderStorage.storeOrderState();
+        colliderStorage.storeOrderState(tracer);
         emit(order);
         return message.ack();
     }
