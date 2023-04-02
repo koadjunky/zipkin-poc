@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc.quarkus.fixapi;
+package eu.malycha.zipkin.poc.quarkus.service.fixapi;
 
 import javax.enterprise.context.ApplicationScoped;
 

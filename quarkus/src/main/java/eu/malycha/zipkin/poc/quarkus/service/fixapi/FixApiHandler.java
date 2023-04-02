@@ -1,7 +1,7 @@
-package eu.malycha.zipkin.poc.quarkus.fixapi;
+package eu.malycha.zipkin.poc.quarkus.service.fixapi;
 
-import eu.malycha.zipkin.poc.quarkus.collider.ColliderHandler;
-import eu.malycha.zipkin.poc.quarkus.gateway.GatewayHandler;
+import eu.malycha.zipkin.poc.quarkus.infra.OpenTelemetryContext;
+import eu.malycha.zipkin.poc.quarkus.service.gateway.GatewayHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,17 @@ public class FixApiHandler {
     @Inject
     FixApiStorage fixApiStorage;
 
-    void handle() {
+    void handle() throws Exception {
+        try (OpenTelemetryContext otc = OpenTelemetryContext.create("fix-api-server")) {
+            otc.runInSpan("request", "newOrder", () -> {
+                otc.runInSpan("core", "newOrder", () -> {
+                    handleInner();
+                });
+            });
+        }
+    }
+
+    void handleInner() {
         LOGGER.info("FixApiHandler.handle()");
         delay(100);
         fixApiStorage.storeOrderId();

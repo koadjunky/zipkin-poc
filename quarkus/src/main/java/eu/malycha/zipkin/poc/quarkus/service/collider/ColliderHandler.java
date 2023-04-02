@@ -1,6 +1,6 @@
-package eu.malycha.zipkin.poc.quarkus.collider;
+package eu.malycha.zipkin.poc.quarkus.service.collider;
 
-import eu.malycha.zipkin.poc.quarkus.wrapper.WrapperHandler;
+import eu.malycha.zipkin.poc.quarkus.service.wrapper.WrapperHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

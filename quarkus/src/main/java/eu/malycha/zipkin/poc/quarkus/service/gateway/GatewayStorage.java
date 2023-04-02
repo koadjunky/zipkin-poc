@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc.quarkus.gateway;
+package eu.malycha.zipkin.poc.quarkus.service.gateway;
 
 import javax.enterprise.context.ApplicationScoped;
 

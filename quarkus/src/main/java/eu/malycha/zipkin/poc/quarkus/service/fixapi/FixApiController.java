@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc.quarkus.fixapi;
+package eu.malycha.zipkin.poc.quarkus.service.fixapi;
 
 import java.util.UUID;
 import javax.inject.Inject;
@@ -16,7 +16,7 @@ public class FixApiController {
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/order/new")
-    public String send() {
+    public String send() throws Exception {
         fixApiHandler.handle();
         return "Order sent: " + UUID.randomUUID();
     }

@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc.quarkus.collider;
+package eu.malycha.zipkin.poc.quarkus.service.collider;
 
 import javax.enterprise.context.ApplicationScoped;
 
