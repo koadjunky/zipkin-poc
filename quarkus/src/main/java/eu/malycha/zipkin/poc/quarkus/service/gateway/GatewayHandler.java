@@ -1,12 +1,11 @@
 package eu.malycha.zipkin.poc.quarkus.service.gateway;
 
-import eu.malycha.zipkin.poc.quarkus.infra.OpenTelemetryContext;
+import eu.malycha.zipkin.poc.quarkus.infra.TelemetryUtil;
+import eu.malycha.zipkin.poc.quarkus.infra.Tracing;
 import eu.malycha.zipkin.poc.quarkus.model.Order;
-import eu.malycha.zipkin.poc.quarkus.service.collider.ColliderHandler;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Scope;
+import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -33,19 +32,15 @@ public class GatewayHandler {
     GatewayStorage gatewayStorage;
 
     @Incoming("client")
-    public CompletionStage<Void> handle(Message<JsonObject> message) throws Exception {
-        try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-gateway")) {
-            Tracer tracer = otc.getOpenTelemetry().getTracer("core", OpenTelemetryContext.VERSION);
-            Span span = tracer.spanBuilder("handleNewOrder").startSpan();
-            try (Scope ss = span.makeCurrent()) {
-                return handleInner(message, tracer);
-            } finally {
-                span.end();
+    public CompletionStage<Void> handle(IncomingRabbitMQMessage<JsonObject> message) throws Exception {
+        try (Tracing tracing = TelemetryUtil.createTracing("order-gateway", "core", "1.0.0")) {
+            try (var ignored = tracing.createSpan("handleNewOrder")) {
+                return handleInner(message, tracing);
             }
         }
     }
 
-    public CompletionStage<Void> handleInner(Message<JsonObject> message, Tracer tracer) {
+    public CompletionStage<Void> handleInner(Message<JsonObject> message, Tracing tracer) {
         Order order = message.getPayload().mapTo(Order.class);
         LOGGER.info("GatewayHandler.handle({})", order.orderId);
         delay(100);

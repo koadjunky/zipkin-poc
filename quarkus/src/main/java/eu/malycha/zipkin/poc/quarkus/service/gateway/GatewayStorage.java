@@ -1,9 +1,8 @@
 package eu.malycha.zipkin.poc.quarkus.service.gateway;
 
+import eu.malycha.zipkin.poc.quarkus.infra.Tracing;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Scope;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -12,27 +11,21 @@ import static eu.malycha.zipkin.poc.quarkus.utils.ServiceUtils.delay;
 @ApplicationScoped
 public class GatewayStorage {
 
-    void fetchOrderState(Tracer tracer) {
-        Span span = tracer.spanBuilder("fetchOrderState").startSpan();
-        try (Scope ss = span.makeCurrent()) {
+    void fetchOrderState(Tracing tracing) {
+        try (var ignored = tracing.createSpan("fetchOrderState")) {
             delay(20);
             Span.current().addEvent("Send message");
             delay(100);
             Span.current().addEvent("Receive answer");
             delay(30);
             Span.current().setStatus(StatusCode.OK);
-        } finally {
-            span.end();
         }
     }
 
-    void storeOrderState(Tracer tracer) {
-        Span span = tracer.spanBuilder("storeOrderState").startSpan();
-        try (Scope ss = span.makeCurrent()) {
+    void storeOrderState(Tracing tracing) {
+        try (var ignored = tracing.createSpan("storeOrderState")) {
             delay(120);
             Span.current().setStatus(StatusCode.OK);
-        } finally {
-            span.end();
         }
     }
 }

@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc.quarkus.infra;
+package eu.malycha.zipkin.poc.quarkus.infra.otl;
 
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
@@ -8,7 +8,7 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class StringMapContext extends HashMap<String, String> {
+public class StringMapPropagator extends HashMap<String, String> {
 
     public static Getter getter() {
         return new Getter();
@@ -18,26 +18,26 @@ public class StringMapContext extends HashMap<String, String> {
         return new Setter();
     }
 
-    public static class Getter implements TextMapGetter<StringMapContext> {
+    public static class Getter implements TextMapGetter<StringMapPropagator> {
 
         @Override
-        public Iterable<String> keys(@Nonnull StringMapContext carrier) {
+        public Iterable<String> keys(@Nonnull StringMapPropagator carrier) {
             return carrier.keySet();
         }
 
         @Nullable
         @Override
-        public String get(@Nullable StringMapContext carrier, @Nonnull String key) {
+        public String get(@Nullable StringMapPropagator carrier, @Nonnull String key) {
             return Optional.ofNullable(carrier)
                 .map(c -> c.get(key))
                 .orElse(null);
         }
     }
 
-    public static class Setter implements TextMapSetter<StringMapContext> {
+    public static class Setter implements TextMapSetter<StringMapPropagator> {
 
         @Override
-        public void set(@Nullable StringMapContext carrier, @Nonnull String key, @Nonnull String value) {
+        public void set(@Nullable StringMapPropagator carrier, @Nonnull String key, @Nonnull String value) {
             if (carrier != null) {
                 carrier.put(key, value);
             }

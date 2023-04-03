@@ -1,4 +1,4 @@
-package eu.malycha.zipkin.poc.quarkus.infra;
+package eu.malycha.zipkin.poc.quarkus.infra.otl;
 
 import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.context.Context;

@@ -34,7 +34,7 @@ class BasicTracingTest {
 
     @Test
     void orderTest() throws Exception {
-        StringMapContext context = orderFixApiServer();
+        StringMapPropagator context = orderFixApiServer();
         orderGateway(context);
         orderCollider(context);
         orderWrapper(context);
@@ -42,13 +42,13 @@ class BasicTracingTest {
 
     @Test
     void reportTest() throws Exception {
-        StringMapContext context = reportWrapper();
+        StringMapPropagator context = reportWrapper();
         context = reportCollider(context);
         context = reportGateway(context);
         reportFixApiServer(context);
     }
 
-    StringMapContext orderFixApiServer() throws Exception {
+    StringMapPropagator orderFixApiServer() throws Exception {
         try (OpenTelemetryContext otc = OpenTelemetryContext.create("fix-api-server")) {
             return otc.runInSpan("request", "newOrder", () -> {
                 LOGGER.info("fix-api-server context: {}", Context.current());
@@ -74,7 +74,7 @@ class BasicTracingTest {
         }
     }
 
-    StringMapContext orderGateway(StringMapContext context) throws Exception {
+    StringMapPropagator orderGateway(StringMapPropagator context) throws Exception {
         delay(85);
         try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-gateway")) {
             return otc.runInRootSpan("core", "handleNewOrder", context, () -> {
@@ -105,7 +105,7 @@ class BasicTracingTest {
         }
     }
 
-    StringMapContext orderCollider(StringMapContext context) throws Exception {
+    StringMapPropagator orderCollider(StringMapPropagator context) throws Exception {
         delay(44);
         try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-collider")) {
             return otc.runInRootSpan("core", "handleNewOrder", context, () -> {
@@ -139,7 +139,7 @@ class BasicTracingTest {
         }
     }
 
-    void orderWrapper(StringMapContext context) throws Exception {
+    void orderWrapper(StringMapPropagator context) throws Exception {
         delay(87);
         try (OpenTelemetryContext otc = OpenTelemetryContext.create("connector-wrapper")) {
             otc.runInRootSpan("core", "handleNewOrder", context, () -> {
@@ -152,7 +152,7 @@ class BasicTracingTest {
         }
     }
 
-    StringMapContext reportWrapper() throws Exception {
+    StringMapPropagator reportWrapper() throws Exception {
         try (OpenTelemetryContext otc = OpenTelemetryContext.create("connector-wrapper")) {
             return otc.runInSpan("report", "executionReport", () -> {
                 otc.runInSpan("core", "connectorHandler", () -> {
@@ -162,7 +162,7 @@ class BasicTracingTest {
         }
     }
 
-    StringMapContext reportCollider(StringMapContext context) throws Exception {
+    StringMapPropagator reportCollider(StringMapPropagator context) throws Exception {
         try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-collider")) {
             return otc.runInRootSpan("core", "reportHandler", context, () -> {
                 delay(DEFAULT);
@@ -170,7 +170,7 @@ class BasicTracingTest {
         }
     }
 
-    StringMapContext reportGateway(StringMapContext context) throws Exception {
+    StringMapPropagator reportGateway(StringMapPropagator context) throws Exception {
         try (OpenTelemetryContext otc = OpenTelemetryContext.create("order-gateway")) {
             return otc.runInRootSpan("core", "reportHandler", context, () -> {
                 delay(DEFAULT);
@@ -178,7 +178,7 @@ class BasicTracingTest {
         }
     }
 
-    void reportFixApiServer(StringMapContext context) throws Exception {
+    void reportFixApiServer(StringMapPropagator context) throws Exception {
         try (OpenTelemetryContext otc = OpenTelemetryContext.create("fix-api-server")) {
             otc.runInRootSpan("core", "reportHandler", context, () -> {
                 delay(DEFAULT);

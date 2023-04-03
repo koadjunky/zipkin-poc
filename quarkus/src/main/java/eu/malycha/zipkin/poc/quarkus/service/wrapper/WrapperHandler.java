@@ -1,10 +1,10 @@
 package eu.malycha.zipkin.poc.quarkus.service.wrapper;
 
-import eu.malycha.zipkin.poc.quarkus.infra.OpenTelemetryContext;
+import eu.malycha.zipkin.poc.quarkus.infra.TelemetryUtil;
+import eu.malycha.zipkin.poc.quarkus.infra.Tracing;
 import eu.malycha.zipkin.poc.quarkus.model.Order;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Scope;
+import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -22,14 +22,10 @@ public class WrapperHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(WrapperHandler.class);
 
     @Incoming("venue")
-    public CompletionStage<Void> handle(Message<JsonObject> message) throws Exception {
-        try (OpenTelemetryContext otc = OpenTelemetryContext.create("connector-wrapper")) {
-            Tracer tracer = otc.getOpenTelemetry().getTracer("core", OpenTelemetryContext.VERSION);
-            Span span = tracer.spanBuilder("handleNewOrder").startSpan();
-            try (Scope ss = span.makeCurrent()) {
+    public CompletionStage<Void> handle(IncomingRabbitMQMessage<JsonObject> message) throws Exception {
+        try (Tracing tracing = TelemetryUtil.createTracing("connector-wrapper", "core", "1.0.0")) {
+            try (var ignored = tracing.createSpan("handleNewOrder")) {
                 return handleInner(message);
-            } finally {
-                span.end();
             }
         }
     }

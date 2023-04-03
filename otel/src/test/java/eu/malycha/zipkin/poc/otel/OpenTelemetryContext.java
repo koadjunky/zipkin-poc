@@ -48,17 +48,17 @@ public class OpenTelemetryContext implements Closeable {
         }
     }
 
-    public StringMapContext runInSpan(String scopeName, String spanName, Runnable runnable) {
+    public StringMapPropagator runInSpan(String scopeName, String spanName, Runnable runnable) {
         return runInSpan(scopeName, spanName, null, runnable);
     }
 
-    public StringMapContext runInRootSpan(String scopeName, String spanName, StringMapContext contextMap, Runnable runnable) {
+    public StringMapPropagator runInRootSpan(String scopeName, String spanName, StringMapPropagator contextMap, Runnable runnable) {
         TextMapPropagator textMapPropagator = openTelemetry.getPropagators().getTextMapPropagator();
-        Context context = textMapPropagator.extract(Context.current(), contextMap, StringMapContext.getter());
+        Context context = textMapPropagator.extract(Context.current(), contextMap, StringMapPropagator.getter());
         return runInSpan(scopeName, spanName, context, runnable);
     }
 
-    public StringMapContext runInSpan(String scopeName, String spanName, Context context, Runnable runnable) {
+    public StringMapPropagator runInSpan(String scopeName, String spanName, Context context, Runnable runnable) {
         Tracer tracer = openTelemetry.getTracer(scopeName, VERSION);
         Span span = tracer.spanBuilder(spanName).setParent(context).startSpan();
         try (Scope ss = span.makeCurrent()){
@@ -102,10 +102,10 @@ public class OpenTelemetryContext implements Closeable {
         return openTelemetryBuilder.build();
     }
 
-    private static StringMapContext propagateContext(OpenTelemetrySdk openTelemetry) {
-        StringMapContext mapContext = new StringMapContext();
+    private static StringMapPropagator propagateContext(OpenTelemetrySdk openTelemetry) {
+        StringMapPropagator mapContext = new StringMapPropagator();
         TextMapPropagator textMapPropagator = openTelemetry.getPropagators().getTextMapPropagator();
-        textMapPropagator.inject(Context.current(), mapContext, StringMapContext.setter());
+        textMapPropagator.inject(Context.current(), mapContext, StringMapPropagator.setter());
         return mapContext;
     }
 }

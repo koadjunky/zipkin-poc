@@ -1,15 +1,12 @@
 package eu.malycha.zipkin.poc.quarkus.service.fixapi;
 
-import eu.malycha.zipkin.poc.quarkus.infra.OpenTelemetryContext;
+import eu.malycha.zipkin.poc.quarkus.infra.TelemetryUtil;
+import eu.malycha.zipkin.poc.quarkus.infra.Tracing;
 import eu.malycha.zipkin.poc.quarkus.model.Order;
-import eu.malycha.zipkin.poc.quarkus.service.gateway.GatewayHandler;
 import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,19 +33,19 @@ public class FixApiHandler {
 
     void handle() throws Exception {
         String clOrderId = UUID.randomUUID().toString();
-        try (OpenTelemetryContext otc = OpenTelemetryContext.create("fix-api-server")) {
-            otc.runInSpan("request", "newOrder", () -> {
+        try (Tracing tracing = TelemetryUtil.createTracing("fix-api-server", "core", "1.0.0")) {
+            try (var ignored = tracing.createSpan("request", "1.0.0", "newOrder")) {
                 Baggage.current().toBuilder()
                     .put("clientId", CLIENT_ID)
                     .put("venueAccount", VENUE_ACCOUNT)
                     .put("clOrderId", clOrderId)
                     .build()
                     .storeInContext(Context.current())
-                    .makeCurrent();
-                otc.runInSpan("core", "newOrder", () -> {
+                    .makeCurrent(); // TODO: createBaggage
+                try (var ignored2 = tracing.createSpan("newOrder")) {
                     handleInner();
-                });
-            });
+                }
+            }
         }
     }
 

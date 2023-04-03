@@ -1,13 +1,13 @@
-package eu.malycha.zipkin.poc.quarkus.infra;
+package eu.malycha.zipkin.poc.quarkus.infra.otl;
 
-import io.opentelemetry.api.OpenTelemetry;
+import eu.malycha.zipkin.poc.quarkus.infra.SafeCloseable;
+import eu.malycha.zipkin.poc.quarkus.infra.Tracing;
 import io.opentelemetry.api.baggage.propagation.W3CBaggagePropagator;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
@@ -24,20 +24,25 @@ import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 import java.io.Closeable;
 import java.io.IOException;
 
-public class OpenTelemetryContext implements Closeable {
+public class OpenTelemetryTracing implements Tracing {
 
     public static final String VERSION = "1.0.0";
+
+    private final String defaultScope;
+    private final String defaultVersion;
 
     private final SdkTracerProvider tracerProvider;
     private final OpenTelemetrySdk openTelemetry;
 
-    private OpenTelemetryContext(String serviceName) {
+    private OpenTelemetryTracing(String serviceName, String defaultScope, String defaultVersion) {
+        this.defaultScope = defaultScope;
+        this.defaultVersion = defaultVersion;
         this.tracerProvider = createTracerProvider(serviceName);
         this.openTelemetry = createOpenTelemetry(tracerProvider);
     }
 
-    public static OpenTelemetryContext create(String serviceName) {
-        return new OpenTelemetryContext(serviceName);
+    public static OpenTelemetryTracing create(String serviceName, String defaultScope, String defaultVersion) {
+        return new OpenTelemetryTracing(serviceName, defaultScope, defaultVersion);
     }
 
     @Override
@@ -48,29 +53,14 @@ public class OpenTelemetryContext implements Closeable {
         }
     }
 
-    public OpenTelemetry getOpenTelemetry() {
-        return openTelemetry;
+    public SafeCloseable createSpan(String spanName) {
+        return createSpan(defaultScope, defaultVersion, spanName);
     }
 
-    public StringMapContext runInSpan(String scopeName, String spanName, Runnable runnable) {
-        return runInSpan(scopeName, spanName, null, runnable);
-    }
-
-    public StringMapContext runInRootSpan(String scopeName, String spanName, StringMapContext contextMap, Runnable runnable) {
-        TextMapPropagator textMapPropagator = openTelemetry.getPropagators().getTextMapPropagator();
-        Context context = textMapPropagator.extract(Context.current(), contextMap, StringMapContext.getter());
-        return runInSpan(scopeName, spanName, context, runnable);
-    }
-
-    public StringMapContext runInSpan(String scopeName, String spanName, Context context, Runnable runnable) {
-        Tracer tracer = openTelemetry.getTracer(scopeName, VERSION);
-        Span span = tracer.spanBuilder(spanName).setParent(context).startSpan();
-        try (Scope ss = span.makeCurrent()){
-            runnable.run();
-            return propagateContext(openTelemetry);
-        } finally {
-            span.end();
-        }
+    public SafeCloseable createSpan(String scopeName, String version, String spanName) {
+        Tracer tracer = openTelemetry.getTracer(scopeName, version);
+        Span span = tracer.spanBuilder(spanName).startSpan();
+        return new SpanWrapper(span);
     }
 
     private static SdkTracerProvider createTracerProvider(String serviceName) {
@@ -107,10 +97,10 @@ public class OpenTelemetryContext implements Closeable {
         return openTelemetryBuilder.build();
     }
 
-    private static StringMapContext propagateContext(OpenTelemetrySdk openTelemetry) {
-        StringMapContext mapContext = new StringMapContext();
+    private static StringMapPropagator propagateContext(OpenTelemetrySdk openTelemetry) {
+        StringMapPropagator mapContext = new StringMapPropagator();
         TextMapPropagator textMapPropagator = openTelemetry.getPropagators().getTextMapPropagator();
-        textMapPropagator.inject(Context.current(), mapContext, StringMapContext.setter());
+        textMapPropagator.inject(Context.current(), mapContext, StringMapPropagator.setter());
         return mapContext;
     }
 }
