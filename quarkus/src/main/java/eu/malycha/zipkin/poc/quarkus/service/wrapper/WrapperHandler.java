@@ -2,8 +2,11 @@ package eu.malycha.zipkin.poc.quarkus.service.wrapper;
 
 import eu.malycha.zipkin.poc.quarkus.infra.TelemetryUtil;
 import eu.malycha.zipkin.poc.quarkus.infra.Tracing;
+import eu.malycha.zipkin.poc.quarkus.infra.otl.RabbitHeadersPropagator;
 import eu.malycha.zipkin.poc.quarkus.model.Order;
+import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -24,8 +27,11 @@ public class WrapperHandler {
     @Incoming("venue")
     public CompletionStage<Void> handle(IncomingRabbitMQMessage<JsonObject> message) throws Exception {
         try (Tracing tracing = TelemetryUtil.createTracing("connector-wrapper", "core", "1.0.0")) {
-            try (var ignored = tracing.createSpan("handleNewOrder")) {
-                return handleInner(message);
+            Context parent = tracing.loadContext(RabbitHeadersPropagator.create(message.getHeaders()), RabbitHeadersPropagator.getter());
+            try (var ignored2 = tracing.createBaggage(parent)) {
+                try (var ignored = tracing.createSpan("handleNewOrder", parent)) {
+                    return handleInner(message);
+                }
             }
         }
     }

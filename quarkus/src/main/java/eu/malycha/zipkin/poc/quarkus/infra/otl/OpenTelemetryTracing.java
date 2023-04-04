@@ -2,14 +2,19 @@ package eu.malycha.zipkin.poc.quarkus.infra.otl;
 
 import eu.malycha.zipkin.poc.quarkus.infra.SafeCloseable;
 import eu.malycha.zipkin.poc.quarkus.infra.Tracing;
+import io.opentelemetry.api.baggage.Baggage;
+import io.opentelemetry.api.baggage.BaggageBuilder;
 import io.opentelemetry.api.baggage.propagation.W3CBaggagePropagator;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.ContextPropagators;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.OpenTelemetrySdkBuilder;
@@ -23,10 +28,9 @@ import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Map;
 
 public class OpenTelemetryTracing implements Tracing {
-
-    public static final String VERSION = "1.0.0";
 
     private final String defaultScope;
     private final String defaultVersion;
@@ -54,13 +58,45 @@ public class OpenTelemetryTracing implements Tracing {
     }
 
     public SafeCloseable createSpan(String spanName) {
-        return createSpan(defaultScope, defaultVersion, spanName);
+        return createSpan(defaultScope, defaultVersion, spanName, null);
+    }
+
+    public SafeCloseable createSpan(String spanName, Context parent) {
+        return createSpan(defaultScope, defaultVersion, spanName, parent);
     }
 
     public SafeCloseable createSpan(String scopeName, String version, String spanName) {
+        return createSpan(scopeName, version, spanName, null);
+    }
+
+    public SafeCloseable createSpan(String scopeName, String version, String spanName, Context parent) {
         Tracer tracer = openTelemetry.getTracer(scopeName, version);
-        Span span = tracer.spanBuilder(spanName).startSpan();
-        return new SpanWrapper(span);
+        SpanBuilder spanBuilder = tracer.spanBuilder(spanName);
+        if (parent != null) {
+            spanBuilder.setParent(parent);
+        }
+        return new SpanWrapper(spanBuilder.startSpan());
+    }
+
+    public SafeCloseable createBaggage(Context context) {
+        return new BaggageWrapper(Baggage.fromContext(context));
+    }
+
+    public SafeCloseable createBaggage(Map<String, String> content) {
+        BaggageBuilder baggageBuilder = Baggage.current().toBuilder();
+        content.forEach(baggageBuilder::put);
+        return new BaggageWrapper(baggageBuilder.build());
+    }
+
+    public <C> Context loadContext(C propagator, TextMapGetter<C> getter) {
+        TextMapPropagator textMapPropagator = openTelemetry.getPropagators().getTextMapPropagator();
+        return textMapPropagator.extract(Context.current(), propagator, getter);
+    }
+
+    public <C> C saveContext(C propagator, TextMapSetter<C> setter) {
+        TextMapPropagator textMapPropagator = openTelemetry.getPropagators().getTextMapPropagator();
+        textMapPropagator.inject(Context.current(), propagator, setter);
+        return propagator;
     }
 
     private static SdkTracerProvider createTracerProvider(String serviceName) {
@@ -95,12 +131,5 @@ public class OpenTelemetryTracing implements Tracing {
             .setTracerProvider(sdkTracerProvider)
             .setPropagators(propagators);
         return openTelemetryBuilder.build();
-    }
-
-    private static StringMapPropagator propagateContext(OpenTelemetrySdk openTelemetry) {
-        StringMapPropagator mapContext = new StringMapPropagator();
-        TextMapPropagator textMapPropagator = openTelemetry.getPropagators().getTextMapPropagator();
-        textMapPropagator.inject(Context.current(), mapContext, StringMapPropagator.setter());
-        return mapContext;
     }
 }
