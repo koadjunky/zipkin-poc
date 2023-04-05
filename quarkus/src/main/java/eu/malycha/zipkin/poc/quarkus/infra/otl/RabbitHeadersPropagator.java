@@ -18,7 +18,7 @@ public class RabbitHeadersPropagator {
 
     private final Map<String, String> contextMap = new HashMap<>();
 
-    RabbitHeadersPropagator(Map<String, Object> headers) {
+    private RabbitHeadersPropagator(Map<String, Object> headers) {
         headers.forEach((k, v) -> contextMap.put(k, v.toString()));
     }
 
@@ -42,7 +42,7 @@ public class RabbitHeadersPropagator {
         return new Setter();
     }
 
-    public static class Getter implements TextMapGetter<RabbitHeadersPropagator> {
+    private static class Getter implements TextMapGetter<RabbitHeadersPropagator> {
 
         @Override
         public Iterable<String> keys(RabbitHeadersPropagator carrier) {
@@ -61,7 +61,7 @@ public class RabbitHeadersPropagator {
         }
     }
 
-    public static class Setter implements TextMapSetter<RabbitHeadersPropagator> {
+    private static class Setter implements TextMapSetter<RabbitHeadersPropagator> {
 
         @Override
         public void set(@Nullable RabbitHeadersPropagator carrier, String key, String value) {

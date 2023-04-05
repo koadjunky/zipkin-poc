@@ -6,14 +6,14 @@ import io.opentelemetry.context.Scope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SpanWrapper implements SafeCloseable {
+class SpanWrapper implements SafeCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SpanWrapper.class);
 
     private Span span;
     private Scope scope;
 
-    public SpanWrapper(Span span) {
+    SpanWrapper(Span span) {
         this.span = span;
         this.scope = span.makeCurrent();
     }

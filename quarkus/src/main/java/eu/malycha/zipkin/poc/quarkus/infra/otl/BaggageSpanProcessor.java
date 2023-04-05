@@ -6,9 +6,9 @@ import io.opentelemetry.sdk.trace.ReadWriteSpan;
 import io.opentelemetry.sdk.trace.ReadableSpan;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 
-public class BaggageSpanProcessor implements SpanProcessor {
+class BaggageSpanProcessor implements SpanProcessor {
 
-    public static BaggageSpanProcessor create() {
+    static BaggageSpanProcessor create() {
         return new BaggageSpanProcessor();
     }
 

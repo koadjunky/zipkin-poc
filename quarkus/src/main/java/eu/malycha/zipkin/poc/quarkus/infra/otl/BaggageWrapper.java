@@ -7,13 +7,13 @@ import io.opentelemetry.context.Scope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BaggageWrapper implements SafeCloseable {
+class BaggageWrapper implements SafeCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BaggageWrapper.class);
 
     private Scope scope;
 
-    public BaggageWrapper(Baggage baggage) {
+    BaggageWrapper(Baggage baggage) {
         this.scope = baggage.storeInContext(Context.current()).makeCurrent();
     }
 
