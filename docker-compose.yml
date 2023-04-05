@@ -18,6 +18,12 @@ services:
       - LOG_LEVEL=debug
     networks:
       - jaeger-example
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - jaeger-example
   otel-collector:
     image: otel/opentelemetry-collector:latest
     command: ["--config=/etc/otel-collector-config.yaml"]
@@ -30,6 +36,7 @@ services:
       - jaeger-example
     depends_on:
       - jaeger
+      - zipkin
   hotrod:
     image: jaegertracing/example-hotrod:latest
     # To run the latest trunk build, find the tag at Docker Hub and use the line below
