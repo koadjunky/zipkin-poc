@@ -104,12 +104,13 @@ public class OpenTelemetryTracing implements Tracing {
         );
         Resource resource = Resource.getDefault().merge(inner);
 
-        SpanExporter jaegerSpanExporter = OtlpGrpcSpanExporter.builder()
+        // otel-collector
+        SpanExporter otelCollectorSpanExporter = OtlpGrpcSpanExporter.builder()
             .setEndpoint("http://localhost:4317")
             .build();
 
         SpanProcessor spanProcessor = SpanProcessor.composite(
-            BatchSpanProcessor.builder(jaegerSpanExporter).build(),
+            BatchSpanProcessor.builder(otelCollectorSpanExporter).build(),
             BaggageSpanProcessor.create()
         );
 

@@ -1,5 +1,6 @@
 version: '3.7'
 services:
+
   rabbit:
     image: rabbitmq:3.9-management
     ports:
@@ -7,36 +8,82 @@ services:
       - "15672:15672"
     networks:
       - jaeger-example
-  jaeger:
-    image: jaegertracing/all-in-one:latest
+
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra
     ports:
-      - "16686:16686"
-      - "14268:14268"
-      - "14250:14250"
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-      - LOG_LEVEL=debug
+      - "7000:7000" # cluster communication
+      - "7199:7199" # JMX
+      - "9042:9042" # native protocol clients
     networks:
       - jaeger-example
+    volumes:
+      - cassandra-volume:/var/lib/cassandra
+
+  cassandra-schema:
+    image: jaegertracing/jaeger-cassandra-schema
+    depends_on:
+      - cassandra
+    networks:
+      - jaeger-example
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    command:
+      - "--cassandra.keyspace=jaeger_v1_dc1"
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "16686:16686" # UI
+      - "14268:14268" # jaeger.thrift
+      - "14250:14250" # model.proto
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - JAEGER_DISABLED=true # disable jaeger-query traces
+      - LOG_LEVEL=debug
+      - SPAN_STORAGE_TYPE=cassandra
+      - CASSANDRA_SERVERS=cassandra
+    networks:
+      - jaeger-example
+    restart: on-failure
+    depends_on:
+      - cassandra-schema
+
   zipkin:
     image: openzipkin/zipkin
     ports:
       - "9411:9411"
     networks:
       - jaeger-example
-  otel-collector:
-    image: otel/opentelemetry-collector:latest
-    command: ["--config=/etc/otel-collector-config.yaml"]
+
+  prometheus:
+    image: prom/prometheus
     volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:Z
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "13133:13133"
-      - "4317:4317"
+      - "7300:7300"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.listen-address=:7300
     networks:
       - jaeger-example
-    depends_on:
-      - jaeger
-      - zipkin
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ./grafana/dashboard-for-grafana.json:/var/lib/grafana/dashboards/dashboard-for-grafana.json
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    networks:
+      - jaeger-example
+
   hotrod:
     image: jaegertracing/example-hotrod:latest
     # To run the latest trunk build, find the tag at Docker Hub and use the line below
@@ -54,3 +101,6 @@ services:
 
 networks:
   jaeger-example:
+
+volumes:
+  cassandra-volume:
