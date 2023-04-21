@@ -44,6 +44,8 @@ services:
       - LOG_LEVEL=debug
       - SPAN_STORAGE_TYPE=cassandra
       - CASSANDRA_SERVERS=cassandra
+      - METRICS_STORAGE_TYPE=prometheus
+      - PROMETHEUS_SERVER_URL=http://prometheus:7300
     networks:
       - jaeger-example
     restart: on-failure
@@ -77,6 +79,7 @@ services:
       - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
       - ./grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
       - ./grafana/dashboard-for-grafana.json:/var/lib/grafana/dashboards/dashboard-for-grafana.json
+      - ./grafana/dashboard-for-jaeger.json:/var/lib/grafana/dashboards/dashboard-for-jaeger.json
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.

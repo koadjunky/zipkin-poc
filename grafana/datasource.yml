@@ -7,3 +7,8 @@ datasources:
   url: http://prometheus:7300
   version: 1
   editable: true
+- name: Jaeger
+  type: jaeger
+  url: http://jaeger:16686
+  version: 1
+  editable: true
