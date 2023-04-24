@@ -7,6 +7,7 @@ import io.opentelemetry.api.baggage.BaggageBuilder;
 import io.opentelemetry.api.baggage.propagation.W3CBaggagePropagator;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
@@ -70,7 +71,7 @@ public class OpenTelemetryTracing implements Tracing {
 
     public SafeCloseable createSpan(String scopeName, String version, String spanName, Context parent) {
         Tracer tracer = openTelemetry.getTracer(scopeName, version);
-        SpanBuilder spanBuilder = tracer.spanBuilder(spanName);
+        SpanBuilder spanBuilder = tracer.spanBuilder(spanName).setSpanKind(SpanKind.SERVER);
         if (parent != null) {
             spanBuilder.setParent(parent);
         }

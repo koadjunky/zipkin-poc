@@ -1,0 +1,39 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+
+  otlp/spanmetrics:
+    protocols:
+      grpc:
+        endpoint: "localhost:65535"
+
+exporters:
+  jaeger:
+    endpoint: "jaeger:14250"
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+  zipkin:
+    endpoint: http://zipkin:9411/api/v2/spans
+
+processors:
+  batch:
+  spanmetrics:
+    metrics_exporter: prometheus
+
+extensions:
+  health_check:
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [spanmetrics, batch]
+      exporters: [jaeger, zipkin]
+    metrics/spanmetrics:
+      receivers: [otlp/spanmetrics]
+      exporters: [prometheus]

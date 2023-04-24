@@ -1,5 +1,6 @@
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
 
 scrape_configs:
   - job_name: 'jaeger'
@@ -7,3 +8,6 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['jaeger:14269']
+  - job_name: "aggregated-trace-metrics"
+    static_configs:
+      - targets: ['otel-collector:8889']
